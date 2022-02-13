@@ -1,0 +1,126 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class Goblin : MonoBehaviour
+{
+    public Animator myanimator;
+    public Rigidbody2D myrigid;
+
+    [SerializeField] private AudioClip sonidoAtaque;
+    [SerializeField] private AudioClip sonidoMuerte;
+    [SerializeField] private AudioClip sonidoCorrer;
+    private AudioSource audioSource;
+
+    private bool muerteGoblin;
+
+
+    [SerializeField]
+    Transform player;
+
+    [SerializeField]
+    float rangoAgro; // A cuanta distancia el enemigo ve al jugador
+    public float velocidadMov;
+    private bool miraDerecha;
+
+
+    private void Awake()
+    {
+        miraDerecha = true;
+        myrigid = GetComponent<Rigidbody2D>();
+        myanimator = GetComponent<Animator>();
+
+        audioSource = GetComponent<AudioSource>();
+        audioSource.clip = sonidoMuerte;
+        audioSource.clip = sonidoAtaque;
+    }
+    // Update is called once per frame
+    void Update()
+    {
+        // Distancia hasta el jugador
+        float distJugador = Vector2.Distance(transform.position, player.position);
+        Debug.Log("Distancia del jugador: " + distJugador);
+
+        if (distJugador < rangoAgro && Mathf.Abs(distJugador) > 1)
+        {
+            PerseguirJugador(); //Funcion de perseguir
+            myanimator.SetFloat("Velocidad", 1);
+            myanimator.SetBool("Atacar", false);
+        }
+        else if (Mathf.Abs(distJugador) < 1)
+        {
+            myanimator.SetBool("Atacar", true);
+        }
+        else
+        {
+            NoPerseguir();
+            myanimator.SetFloat("Velocidad", 0);
+        }
+    }
+
+    private void NoPerseguir()
+    {
+        myrigid.velocity = Vector2.zero;
+    }
+
+    private void PerseguirJugador()
+    {
+        //Si estamos a la izquierda del jugador entonces movemos el enemigo hacia la derecha
+        if (transform.position.x < player.position.x && !miraDerecha)
+        {
+            myrigid.velocity = new Vector2(velocidadMov, 0f);
+            Flip();
+        }
+        else if (transform.position.x > player.position.x && miraDerecha)
+        {
+            myrigid.velocity = new Vector2(-velocidadMov, 0f);
+            Flip();
+        }
+        else if (!miraDerecha)
+        {
+            myrigid.velocity = new Vector2(-velocidadMov, 0f);
+        }
+        else if (miraDerecha)
+        {
+            myrigid.velocity = new Vector2(velocidadMov, 0f);
+        }
+    }
+
+    private void Flip()
+    {
+        // Defino nuevamente hacia donde esta mirando el jugador
+        miraDerecha = !miraDerecha;
+
+        // Multiplicar la escala en X del personaje por -1
+        Vector3 laEscala = transform.localScale;
+        laEscala.x *= -1;
+        transform.localScale = laEscala;
+    }
+
+
+    private void OnTriggerEnter2D(Collider2D col)
+    {
+        if (col.gameObject.name == "HitChecker")
+        {
+            
+            audioSource.PlayOneShot(sonidoMuerte);
+            myanimator.Play("GoblinDeath");
+
+        }
+
+    }
+
+    private void AttackGoblin()
+    {
+        audioSource.PlayOneShot(sonidoAtaque);
+    }
+
+    private void DestroyGoblin()
+    {
+       
+        Destroy(this.gameObject);
+    }
+
+
+}
