@@ -1,0 +1,179 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+public class PlayerControllerDef : MonoBehaviour
+{
+    public Rigidbody2D rb;
+    public Animator myanimator;
+    public Animator animatorMuerte;
+    private AudioManager audioManager;
+
+
+    [SerializeField] private GameObject menuMuerte;
+    private bool juegoPausado = false;
+
+    public int maxHealth = 100;
+    public int currentHealth;
+    public BarraVida healthBar;
+
+  
+    public float speed;
+    float jumpVelocity = 17f;
+    private float moveInput;
+
+    private bool isJumping;
+    private bool isAttacking;
+
+    private void Awake()
+    {
+        audioManager = FindObjectOfType<AudioManager>();
+    }
+
+    void Start()
+    {
+        currentHealth = maxHealth;
+        healthBar.SetMaxHealth(maxHealth);
+        rb = GetComponent<Rigidbody2D>();
+        myanimator = GetComponent<Animator>();
+    }
+
+
+    void FixedUpdate()
+    {
+        moveInput = Input.GetAxisRaw("Horizontal");
+        rb.velocity = new Vector2(moveInput * speed, rb.velocity.y);
+    }
+
+    void Update()
+    {
+        if (Input.GetAxis("Horizontal") == 0 && isJumping == false && isAttacking == false)
+        {
+            myanimator.Play("PlayerIddle");
+
+        }
+
+        if (Input.GetAxisRaw("Horizontal") > 0 && isJumping == false && isAttacking == false)
+        {
+            transform.Translate(Vector3.right * speed * Time.deltaTime, Space.World);
+            transform.eulerAngles = new Vector3(0, 0, 0);
+            myanimator.Play("PlayerRun");
+        }
+
+        if (Input.GetAxisRaw("Horizontal") < 0 && isJumping == false && isAttacking == false)
+        {
+            transform.Translate(Vector3.left * speed * Time.deltaTime, Space.World);
+            transform.eulerAngles = new Vector3(0, 180, 0);
+            myanimator.Play("PlayerRun");
+
+        }
+
+
+
+
+        if (Input.GetKeyDown(KeyCode.Space) && rb.velocity.y == 0 && GroundChecker.estoytocandosuelo == true)
+        {
+            Debug.Log("Saltar");
+            myanimator.Play("PlayerJump");
+            rb.velocity = Vector2.up * jumpVelocity;
+            if (Input.GetAxisRaw("Horizontal") > 0) rb.velocity = new Vector2(18.5f, 18 );
+            if (Input.GetAxisRaw("Horizontal") < 0) rb.velocity = new Vector2(18.5f, 18 );
+
+        }
+       
+
+
+
+        if (Input.GetButtonDown("Fire1"))
+        {
+
+            myanimator.Play("PlayerAttack");
+
+        }
+
+        if(currentHealth <=0 )
+        {
+           
+
+            myanimator.Play("PlayerDead");
+
+            StartCoroutine("EsperarMuerte");
+
+
+        }
+    }
+
+
+    IEnumerator EsperarMuerte()
+    {
+        yield return new WaitForSeconds(2);
+        Muerte();
+    }
+
+    private void OnTriggerEnter2D(Collider2D col)
+    {
+        if (col.gameObject.name == "HitEnemy")
+        {
+
+            TakeDamage(20);
+        }
+        else if (col.gameObject.name == "HitPinchos")
+            {
+            TakeDamage(100);
+          
+        }
+
+    }
+
+    void TakeDamage(int damage)
+    {
+        currentHealth -= damage;
+
+        healthBar.SetHealth(currentHealth);
+    }
+
+    public void BloquearAtaque()
+    {
+        isAttacking = true;
+    }
+
+    public void DesbloquearAtaque()
+    {
+        isAttacking = false;
+    }
+
+    public void BloquearSalto()
+    {
+        isJumping = true;
+    }
+
+    public void DesbloquearSalto()
+    {
+        isJumping = false;
+    }
+
+
+    //Muerte
+    public void Muerte()
+    { 
+        juegoPausado = true;
+        Time.timeScale = 0f;
+        menuMuerte.SetActive(true);
+
+    }
+
+    public void Reiniciar()
+    {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
+    public void Cerrar()
+    {
+        Debug.Log("Cerrando Juego");
+        Application.Quit();
+    }
+
+
+}
