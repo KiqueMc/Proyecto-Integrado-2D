@@ -1,0 +1,117 @@
+using System.Collections;
+using UnityEngine;
+using TMPro;
+
+public class Dialogue : MonoBehaviour
+{
+    [SerializeField] private AudioClip sonidoEscritura;
+    [SerializeField] private AudioClip sonidoVoz;
+    [SerializeField] private float typingTiming;
+    private AudioSource audioSource;
+
+    [SerializeField] private GameObject dialogueMark;
+    [SerializeField] private Animator animDialogue;
+    [SerializeField, TextArea(4,6)] private string[] dialogueLines;
+    [SerializeField] private GameObject dialoguePanel;
+    [SerializeField] private TMP_Text dialogueText;
+    private bool isPlayerInRange;
+    private bool didDialogueStart;
+    private int lineIndex;
+
+
+    
+
+
+    private void Awake()
+    {
+        audioSource = GetComponent<AudioSource>();
+        audioSource.clip = sonidoEscritura;
+    }
+
+    void Update()
+    {
+        if(isPlayerInRange && Input.GetKeyDown(KeyCode.E))
+        {
+            if(!didDialogueStart)
+            { 
+            StartDialogue();
+               
+
+            }
+            else if(dialogueText.text == dialogueLines[lineIndex])
+            {
+                NextDialogueLine();
+            }
+            else
+            {
+                StopAllCoroutines();
+                dialogueText.text = dialogueLines[lineIndex];
+               
+            }
+        }
+    }
+
+    private void StartDialogue()
+    {
+        
+        didDialogueStart = true;
+     
+        dialoguePanel.SetActive(true);
+        
+     
+        dialogueMark.SetActive(false);
+        lineIndex = 0;
+        Time.timeScale = 0f;
+        StartCoroutine(ShowLine());
+       
+
+
+    }
+
+    private void NextDialogueLine()
+    {
+        lineIndex++;
+        if(lineIndex<dialogueLines.Length)
+        {
+            StartCoroutine(ShowLine());
+
+        }
+        else
+        {
+            
+            didDialogueStart = false;
+            dialoguePanel.SetActive(false);
+            dialogueMark.SetActive(true);
+            Time.timeScale = 1f;
+        }
+    }
+
+     private IEnumerator ShowLine()
+    {
+        dialogueText.text = string.Empty;
+        foreach(char ch in dialogueLines[lineIndex])
+        {
+            dialogueText.text += ch;
+            audioSource.Play();
+            yield return new WaitForSecondsRealtime(typingTiming);
+        }
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if(collision.gameObject.CompareTag("Player"))
+        {
+            dialogueMark.SetActive(true);
+            isPlayerInRange = true; }
+       
+    }
+
+    private void OnTriggerExit2D(Collider2D collision)
+    {
+        if (collision.gameObject.CompareTag("Player"))
+        {
+            isPlayerInRange = false;
+            dialogueMark.SetActive(false);
+        }
+    }
+}
